@@ -1,19 +1,21 @@
-type InvokeCallback = (player: Player, ...any) -> ...any
+--!strict
+type ServerInvokeCallback = (player: Player, ...any) -> ...any
 type ClientInvokeCallback = (...any) -> ...any
 
 type PlayerData = {
-	ThreadData: { ThreadEntry },
-	CurrentId: number,
+	threadData: { [number]: ThreadEntry },
+	currentId: number,
 }
 
 export type ThreadEntry = {
-	YieldedThread: thread,
-	TimeoutThread: thread,
+	yieldedThread: thread,
+	timeoutThread: thread,
 }
 
---- Server ---
+----- Server -----
+
 type ServerPublicAttributes = {
-	Event: InvokeCallback?,
+	Event: ServerInvokeCallback?,
 }
 
 type ServerPrivateAttributes = {
@@ -27,32 +29,27 @@ type ServerPrivateAttributes = {
 	_playerRemoving: RBXScriptConnection?,
 }
 
-export type ServerPublicMethods<self, args..., res...> = {
-	InvokeClient: (self: self, player: Player, timeout: number, args...) -> (boolean, res...),
-	Destroy: (self: self) -> (),
+type ServerPublicMethods = {
+	InvokeClient: (self: ServerRemoteFnInternal, player: Player, timeout: number, ...any) -> (boolean, ...any),
+	Destroy: (self: ServerRemoteFnInternal) -> (),
 }
 
-export type ServerPrivateMethods<self, args..., res...> = {
-	_Timeout: (self: self, player: Player, entryId: number) -> (),
-	_HandleResponse: (self: self, player: Player, id: number, res...) -> (),
-	_HandleInvoke: (self: self, player: Player, id: number, args...) -> (),
+type ServerPrivateMethods = {
+	_onTimeout: (self: ServerRemoteFnInternal, player: Player, entryId: number) -> (),
+	_onResponse: (self: ServerRemoteFnInternal, player: Player, id: number, ...any) -> (),
+	_onInvoke: (self: ServerRemoteFnInternal, player: Player, id: number, ...any) -> (),
 }
 
-export type ServerRemoteFnInternal<args..., res...> =
-	ServerPublicMethods<ServerRemoteFnInternal<args..., res...>, args..., res...>
-	& ServerPrivateMethods<ServerRemoteFnInternal<args..., res...>, args..., res...>
-	& ServerPublicAttributes
-	& ServerPrivateAttributes
-
-export type ServerRemoteFn<args..., res...> =
-	ServerPublicMethods<ServerRemoteFnInternal<args..., res...>, args..., res...>
-	& ServerPublicAttributes
+export type ServerRemoteFn = ServerPublicAttributes & ServerPublicMethods
+export type ServerRemoteFnInternal = ServerRemoteFn & ServerPrivateAttributes & ServerPrivateMethods
 
 export type ServerClass = {
-	read new: (name: string, invokeCallback: InvokeCallback?) -> ServerRemoteFn<...any, ...any>,
-}
+	__index: ServerClass,
+	new: (name: string) -> ServerRemoteFn,
+} & ServerPublicMethods & ServerPrivateMethods
 
---- Client ---
+----- Client -----
+
 type ClientPublicAttributes = {
 	Event: ClientInvokeCallback?,
 }
@@ -60,7 +57,7 @@ type ClientPublicAttributes = {
 type ClientPrivateAttributes = {
 	_name: string,
 	_destroyed: boolean,
-	_threads: { ThreadEntry },
+	_threads: { [number]: ThreadEntry },
 	_counter: number,
 	_serverRemote: RemoteEvent,
 	_clientRemote: RemoteEvent,
@@ -68,29 +65,23 @@ type ClientPrivateAttributes = {
 	_onServerEvent: RBXScriptConnection?,
 }
 
-export type ClientPublicMethods<self, args..., res...> = {
-	Invoke: (self: self, timeout: number, args...) -> (boolean, res...),
-	Destroy: (self: self) -> (),
+type ClientPublicMethods = {
+	Invoke: (self: ClientRemoteFnInternal, timeout: number, ...any) -> (boolean, ...any),
+	Destroy: (self: ClientRemoteFnInternal) -> (),
 }
 
-export type ClientPrivateMethods<self, args..., res...> = {
-	_Timeout: (self: self, entryId: number) -> (),
-	_HandleResponse: (self: self, id: number, res...) -> (),
-	_HandleInvoke: (self: self, id: number, args...) -> (),
+type ClientPrivateMethods = {
+	_onTimeout: (self: ClientRemoteFnInternal, entryIndex: number) -> (),
+	_onResponse: (self: ClientRemoteFnInternal, id: number, ...any) -> (),
+	_onInvoke: (self: ClientRemoteFnInternal, id: number, ...any) -> (),
 }
 
-export type ClientRemoteFnInternal<args..., res...> =
-	ClientPublicMethods<ClientRemoteFnInternal<args..., res...>, args..., res...>
-	& ClientPrivateMethods<ClientRemoteFnInternal<args..., res...>, args..., res...>
-	& ClientPrivateAttributes
-	& ClientPublicAttributes
-
-export type ClientRemoteFn<args..., res...> =
-	ClientPublicAttributes
-	& ClientPublicMethods<ClientRemoteFn<args..., res...>, args..., res...>
+export type ClientRemoteFn = ClientPublicAttributes & ClientPublicMethods
+export type ClientRemoteFnInternal = ClientRemoteFn & ClientPrivateAttributes & ClientPrivateMethods
 
 export type ClientClass = {
-	read new: (name: string) -> ClientRemoteFn<...any, ...any>,
-}
+	__index: ClientClass,
+	new: (name: string) -> ClientRemoteFn,
+} & ClientPublicMethods & ClientPrivateMethods
 
 return {}
