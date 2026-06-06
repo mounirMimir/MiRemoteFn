@@ -1,0 +1,10 @@
+name = "mimir/miremotefn"
+version = "0.1.0"
+authors = ["mimir"]
+license = "MIT"
+
+[target]
+environment = "roblox"
+
+[indices]
+default = "https://github.com/pesde-pkg/index"
