@@ -32,6 +32,53 @@ export type ClientRemoteFn<args..., res...> = Typedef.ClientRemoteFn<args..., re
 
 ---- Server ----
 
+local ServerPrivateMethods: ServerPrivateMethods<ServerRemoteFnInternal> = {
+
+	_Timeout = function(self, player, entryId)
+		local playerData = self._playerData[player]
+		if playerData == nil then
+			return
+		end
+
+		local threadEntry = playerData.ThreadData[entryId]
+		playerData.ThreadData[entryId] = nil
+		if threadEntry == nil then
+			return
+		end
+
+		task.spawn(threadEntry.YieldedThread, false, `Invoke Timed Out`)
+	end,
+
+	_HandleInvoke = function(self, player, id, ...)
+		if self.Event == nil then
+			warn(`no event implemented for {self._name} in the Server`)
+			return
+		end
+
+		local ok, result = pcall(function(...)
+			return table.pack(self.Event(player, ...))
+		end, ...)
+
+		if not ok then
+			warn(`event handler errored on the server for {self._name}: {result}`)
+			return
+		end
+
+		self._serverRemote:FireClient(player, id, table.unpack(result, 1, result.n))
+	end,
+
+	_HandleResponse = function(self, player, id, ...)
+		local threadEntry = self._playerData[player].ThreadData[id]
+		self._playerData[player].ThreadData[id] = nil
+		if threadEntry == nil then
+			return
+		end
+
+		task.cancel(threadEntry.TimeoutThread)
+		task.spawn(threadEntry.YieldedThread, true, ...)
+	end,
+}
+
 local ServerPublicMethods: ServerPublicMethods<ServerRemoteFnInternal> = {
 
 	InvokeClient = function(self, player, timeout, ...)
@@ -83,53 +130,6 @@ local ServerPublicMethods: ServerPublicMethods<ServerRemoteFnInternal> = {
 			end
 		end
 		table.clear(self._playerData)
-	end,
-}
-
-local ServerPrivateMethods: ServerPrivateMethods<ServerRemoteFnInternal> = {
-
-	_Timeout = function(self, player, entryId)
-		local playerData = self._playerData[player]
-		if playerData == nil then
-			return
-		end
-
-		local threadEntry = playerData.ThreadData[entryId]
-		playerData.ThreadData[entryId] = nil
-		if threadEntry == nil then
-			return
-		end
-
-		task.spawn(threadEntry.YieldedThread, false, `Invoke Timed Out`)
-	end,
-
-	_HandleInvoke = function(self, player, id, ...)
-		if self.Event == nil then
-			warn(`no event implemented for {self._name} in the Server`)
-			return
-		end
-
-		local ok, result = pcall(function(...)
-			return table.pack(self.Event(player, ...))
-		end, ...)
-
-		if not ok then
-			warn(`event handler errored on the server for {self._name}: {result}`)
-			return
-		end
-
-		self._serverRemote:FireClient(player, id, table.unpack(result, 1, result.n))
-	end,
-
-	_HandleResponse = function(self, player, id, ...)
-		local threadEntry = self._playerData[player].ThreadData[id]
-		self._playerData[player].ThreadData[id] = nil
-		if threadEntry == nil then
-			return
-		end
-
-		task.cancel(threadEntry.TimeoutThread)
-		task.spawn(threadEntry.YieldedThread, true, ...)
 	end,
 }
 
