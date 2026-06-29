@@ -10,7 +10,7 @@ RemotesFolder.Name = "MiRemotesFolder"
 RemotesFolder.Parent = ReplicatedStorage
 
 ----- Types -----
-const Typedef = require("@self/Typedef")
+local Typedef = require("@self/Typedef")
 type ThreadEntry = Typedef.ThreadEntry
 type ServerRemoteFnInternal = Typedef.ServerRemoteFnInternal
 type ClientRemoteFnInternal = Typedef.ClientRemoteFnInternal
@@ -18,7 +18,7 @@ export type ServerRemoteFn = Typedef.ServerRemoteFn
 export type ClientRemoteFn = Typedef.ClientRemoteFn
 
 ----- Server Class -----
-const ServerPebMet: Typedef.ServerPublicMethods<ServerRemoteFnInternal> = {
+local ServerPebMet: Typedef.ServerPublicMethods<ServerRemoteFnInternal> = {
 	InvokeClient = function(self, player, timeout, ...)
 		local playerData = self._PlayerData[player]
 		if playerData == nil then
@@ -71,7 +71,7 @@ const ServerPebMet: Typedef.ServerPublicMethods<ServerRemoteFnInternal> = {
 	end
 }
 
-const ServerPriMet: Typedef.ServerPrivateMethods<ServerRemoteFnInternal> = {
+local ServerPriMet: Typedef.ServerPrivateMethods<ServerRemoteFnInternal> = {
 	__OnInvoke = function(self, player, id, ...)
 		if self.Event == nil then
 			warn(`no event implemented for {self._Name} in the Server`)
@@ -182,7 +182,7 @@ local ServerRemoteFunction : Typedef.ServerClass = {
 } 
 
 ----- Client Class -----
-const ClientPubMet: Typedef.ClientPublicMethods<ClientRemoteFnInternal> = {
+local ClientPubMet: Typedef.ClientPublicMethods<ClientRemoteFnInternal> = {
 	Invoke = function(self, timeout, ...)
 		local entryIndex = self._Counter
 		self._Counter += 1
@@ -218,7 +218,7 @@ const ClientPubMet: Typedef.ClientPublicMethods<ClientRemoteFnInternal> = {
 	end,
 }
 
-const ClientPriMet: Typedef.ClientPrivateMethods<ClientRemoteFnInternal> = {
+local ClientPriMet: Typedef.ClientPrivateMethods<ClientRemoteFnInternal> = {
 	__OnInvoke = function(self, id, ...)
 		if self.Event == nil then
 			warn(`no event implemented for {self._Name} in the Client`)
@@ -229,6 +229,8 @@ const ClientPriMet: Typedef.ClientPrivateMethods<ClientRemoteFnInternal> = {
 			return table.pack(self.Event(...))
 		end, ...)
 
+		
+		
 		if not ok then
 			warn(`event handler errored on the client for {self._Name}: {result}`)
 			return
@@ -259,7 +261,7 @@ const ClientPriMet: Typedef.ClientPrivateMethods<ClientRemoteFnInternal> = {
 	end,
 }
 
-const ClientRemoteFunction : Typedef.ClientClass = {
+local ClientRemoteFunction : Typedef.ClientClass = {
 	new = function(name: string): ClientRemoteFn
 		if RunService:IsServer() then
 			error(`can't make a client remote function on the server`, 2)
